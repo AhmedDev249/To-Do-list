@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="ar">
+<head>
+  <meta charset="UTF-8">
+  <title>قائمة المهام</title>
+  <style>
+    body { font-family: Arial, sans-serif; direction: rtl; padding: 20px; }
+    h1 { color: #333; }
+    ul { list-style: none; padding: 0; }
+    li { padding: 8px; border-bottom: 1px solid #ddd; display: flex; justify-content: space-between; }
+    button { margin-left: 10px; }
+  </style>
+</head>
+<body>
+  <h1>قائمة المهام 📝</h1>
+
+  <!-- إضافة مهمة -->
+  <input type="text" id="taskInput" placeholder="أدخل مهمة جديدة">
+  <button onclick="addTask()">إضافة</button>
+
+  <!-- عرض المهام -->
+  <ul id="taskList"></ul>
+
+  <script>
+    const API_URL = "http://127.0.0.1:5000/tasks";
+
+    // جلب المهام من الباك إند
+    async function fetchTasks() {
+      try {
+        const res = await fetch(API_URL);
+        const tasks = await res.json();
+
+        console.log("📥 المهام:", tasks); // Debug في الكونسول
+
+        const taskList = document.getElementById("taskList");
+        taskList.innerHTML = ""; // تنظيف القائمة
+
+        tasks.forEach(task => {
+          const li = document.createElement("li");
+          li.innerHTML = `
+            ${task.title} ${task.done ? "✅" : ""}
+            <span>
+              <button onclick="toggleTask(${task.id}, ${task.done})">تصحيح</button>
+              <button onclick="deleteTask(${task.id})">حذف</button>
+            </span>
+          `;
+          taskList.appendChild(li);
+        });
+      } catch (error) {
+        console.error("❌ خطأ في جلب البيانات:", error);
+      }
+    }
+
+    // إضافة مهمة جديدة
+    async function addTask() {
+      const input = document.getElementById("taskInput");
+      const title = input.value.trim();
+      if (!title) return alert("من فضلك أدخل مهمة!");
+
+      try {
+        await fetch(API_URL, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ title })
+        });
+        input.value = "";
+        fetchTasks();
+      } catch (error) {
+        console.error("❌ خطأ في إضافة المهمة:", error);
+      }
+    }
+
+    // تبديل حالة المهمة (من منجز ↔ غير منجز)
+    async function toggleTask(id, done) {
+      try {
+        await fetch(`${API_URL}/${id}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ done: !done })
+        });
+        fetchTasks();
+      } catch (error) {
+        console.error("❌ خطأ في تعديل المهمة:", error);
+      }
+    }
+
+    // حذف مهمة
+    async function deleteTask(id) {
+      try {
+        await fetch(`${API_URL}/${id}`, { method: "DELETE" });
+        fetchTasks();
+      } catch (error) {
+        console.error("❌ خطأ في حذف المهمة:", error);
+      }
+    }
+
+    // أول ما الصفحة تفتح نجيب المهام
+    fetchTasks();
+  </script>
+</body>
+</html>
